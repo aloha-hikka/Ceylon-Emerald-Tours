@@ -1,6 +1,7 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { SITE, whatsappLink } from "@/lib/constants";
 import type { BookingInput, BookingTarget } from "@/lib/booking";
+import { quotePrice } from "@/lib/pricing";
 import type { CustomTourInput } from "@/lib/customTour";
 import type { ReviewInput } from "@/lib/review";
 import type { TransferInput } from "@/lib/transfer";
@@ -318,7 +319,7 @@ export interface BookingEmailData {
   reference: string; // CET-BK-XXXX
   target: BookingTarget;
   guest: BookingInput;
-  /** Calculated on the server: listed price per adult x adults. */
+  /** Calculated on the server (see calculateTotal): price x guests, or price x vehicles. */
   totalPrice: number;
   submittedAt: Date;
 }
@@ -328,18 +329,33 @@ function tourUrl(target: BookingTarget): string | null {
   return base ? `${base}${target.path}` : null;
 }
 
+/** "4 x $25" for per-person tours, "2 jeeps x $70" for per-vehicle tours. `times` is "&times;" in HTML. */
+function priceBreakdown(data: BookingEmailData, times = "x"): string {
+  const { target, guest } = data;
+  const q = quotePrice(target.price, target.pricing, guest.adults);
+  if (target.pricing.model === "per-vehicle" && q.vehicleText) return `${q.vehicleText} ${times} ${money(target.price)}`;
+  return `${q.billedGuests} ${times} ${money(target.price)}`;
+}
+
+/** "2 tuk tuks", or null for tours that do not use vehicles. */
+function vehiclesText(data: BookingEmailData): string | null {
+  return quotePrice(data.target.price, data.target.pricing, data.guest.adults).vehicleText;
+}
+
 function bookingRows(data: BookingEmailData): string[] {
   const { target, guest } = data;
   const link = tourUrl(target);
+  const vehicles = vehiclesText(data);
   return [
     row("Package", link ? `<a href="${esc(link)}" style="color:${C.deep};">${esc(target.title)}</a>` : esc(target.title)),
     row("Duration", esc(target.duration)),
-    row("Price", `${money(target.price)} per adult`),
+    row("Price", `${money(target.price)} ${esc(target.pricing.unit)}`),
     row("Preferred date", esc(prettyDate(guest.travelDate))),
-    row("Adults", String(guest.adults)),
+    row(esc(target.pricing.travellerLabel), String(guest.adults)),
+    vehicles ? row("Vehicles", esc(vehicles)) : "",
     row(
       "Total price",
-      `<span style="color:${C.gold};font-size:16px;">${money(data.totalPrice)}</span> <span style="font-weight:400;color:${C.muted};font-size:12px;">(${guest.adults} &times; ${money(target.price)})</span>`
+      `<span style="color:${C.gold};font-size:16px;">${money(data.totalPrice)}</span> <span style="font-weight:400;color:${C.muted};font-size:12px;">(${priceBreakdown(data, "&times;")})</span>`
     ),
     guest.pickupLocation ? row("Pickup location", esc(guest.pickupLocation)) : "",
   ];
@@ -369,8 +385,9 @@ export function buildBookingEmails(data: BookingEmailData): MailPair {
       `Reference: ${reference}`,
       `Package: ${target.title} (${target.duration})`,
       `Preferred date: ${prettyDate(guest.travelDate)}`,
-      `Adults: ${guest.adults}`,
-      `Total price: ${money(data.totalPrice)} (${guest.adults} x ${money(target.price)})`,
+      `${target.pricing.travellerLabel}: ${guest.adults}`,
+      vehiclesText(data) ? `Vehicles: ${vehiclesText(data)}` : null,
+      `Total price: ${money(data.totalPrice)} (${priceBreakdown(data)})`,
       guest.pickupLocation ? `Pickup location: ${guest.pickupLocation}` : null,
       guest.notes ? `Your notes: ${guest.notes}` : null,
       "",
@@ -412,8 +429,9 @@ export function buildBookingEmails(data: BookingEmailData): MailPair {
       `Email: ${guest.email}`,
       `Phone: ${guest.phone}`,
       `Preferred date: ${prettyDate(guest.travelDate)}`,
-      `Adults: ${guest.adults}`,
-      `Total price: ${money(data.totalPrice)} (${guest.adults} x ${money(target.price)})`,
+      `${target.pricing.travellerLabel}: ${guest.adults}`,
+      vehiclesText(data) ? `Vehicles: ${vehiclesText(data)}` : null,
+      `Total price: ${money(data.totalPrice)} (${priceBreakdown(data)})`,
       guest.pickupLocation ? `Pickup location: ${guest.pickupLocation}` : null,
       `Notes: ${guest.notes || "None"}`,
       `WhatsApp: ${wa}`,

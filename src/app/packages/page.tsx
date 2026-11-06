@@ -4,6 +4,7 @@ import { MessageCircle, PlaneLanding } from "lucide-react";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import DayToursGrid from "@/components/DayToursGrid";
 import TourCard from "@/components/TourCard";
 import CustomTourPlanner from "@/components/CustomTourPlanner";
 import { dayTours, multiDayTours } from "@/data/toursData";
@@ -13,10 +14,10 @@ import { buildMetadata } from "@/lib/seo";
 export const metadata: Metadata = buildMetadata({
   title: "Sri Lanka Tour Packages: Multi-Day & Day Tours",
   description:
-    "Multi-day and day tours across Sri Lanka: cultural triangle, hill country, safaris, Galle, Colombo and Ella. Private tours with your own driver-guide, planned from Bandarawela.",
+    "Multi-day and day tours across Sri Lanka, including tuk tuk and jeep day tours around Bandarawela and Ella, the cultural triangle, safaris, Galle and Colombo. Private tours planned from Bandarawela.",
   path: "/packages",
   ogKey: "packages",
-  keywords: ["Sri Lanka tour packages", "7 day Sri Lanka tour", "14 day Sri Lanka tour", "Galle day tour", "Colombo day tour"],
+  keywords: ["Ella tuk tuk tour", "Ella jeep tour", "Sri Lanka tour packages", "7 day Sri Lanka tour", "14 day Sri Lanka tour", "Galle day tour", "Colombo day tour"],
 });
 
 // Static page: built once and served from the CDN.
@@ -42,6 +43,8 @@ export default function PackagesPage() {
               src="/images/hero.webp"
               alt="Sri Lanka Tour Packages Banner"
               fill
+              sizes="100vw"
+              quality={70}
               className="object-cover"
               priority
             />
@@ -97,13 +100,9 @@ export default function PackagesPage() {
               Our Day Tour Packages
             </h2>
             <p className="mt-3 max-w-2xl text-white/70">
-              One day, one destination, back at your hotel by evening.
+              Tuk tuk and jeep tours around Bandarawela and Ella, or a full day to one destination.
             </p>
-            <div className="mt-12 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-              {dayTours.map((tour, i) => (
-                <TourCard key={tour.id} tour={tour} index={i} />
-              ))}
-            </div>
+            <DayToursGrid tours={dayTours} />
           </div>
         </section>
 

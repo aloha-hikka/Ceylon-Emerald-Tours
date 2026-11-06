@@ -4,7 +4,7 @@ import { absoluteUrl } from "@/lib/seo";
 
 // Bump this date when page content changes in a meaningful way. Search engines use it to decide
 // what to re-crawl, so it should not simply be "now".
-const CONTENT_UPDATED = new Date("2026-11-03");
+const CONTENT_UPDATED = new Date("2026-11-06");
 
 /** Served at /sitemap.xml. Tour pages are generated from src/data/toursData.ts. */
 export default function sitemap(): MetadataRoute.Sitemap {

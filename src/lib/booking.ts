@@ -1,4 +1,5 @@
-import { getTourBySlug, isDayTour, type Tour } from "@/data/toursData";
+import { getTourBySlug, getTourPricing, isDayTour, type ResolvedPricing, type Tour } from "@/data/toursData";
+import { quotePrice, type PriceQuote } from "@/lib/pricing";
 import {
   earliestAllowedDate,
   isEmail,
@@ -24,14 +25,26 @@ export interface BookingInput {
   notes: string;
 }
 
-export const MAX_BOOKING_ADULTS = 50;
+/**
+ * Technical safety cap on the number of guests in one booking. It is not a business limit: tours
+ * with vehicles (tuk tuk, jeep) scale the vehicles and the price for any group up to this size.
+ * Larger groups are asked to message us on WhatsApp.
+ */
+export const MAX_BOOKING_ADULTS = 100;
 
 /**
- * Total is always calculated on the server from the listed per-adult price. A total sent by the
- * browser is ignored, so nobody can book a tour at a price they made up.
+ * Total is always calculated on the server from the listed price. A total sent by the browser is
+ * ignored, so nobody can book a tour at a price they made up.
+ * - Classic tours: price x adults.
+ * - Per-person vehicle tours (tuk tuk): price x guests (minimum applies). Vehicles scale automatically.
+ * - Per-vehicle tours (jeep): price x number of jeeps, where one jeep takes up to its capacity.
  */
-export function calculateTotal(target: Pick<BookingTarget, "price">, adults: number): number {
-  return target.price * adults;
+export function quoteBooking(target: Pick<BookingTarget, "price" | "pricing">, guests: number): PriceQuote {
+  return quotePrice(target.price, target.pricing, guests);
+}
+
+export function calculateTotal(target: Pick<BookingTarget, "price" | "pricing">, guests: number): number {
+  return quoteBooking(target, guests).total;
 }
 
 export type BookingField = keyof BookingInput;
@@ -46,6 +59,8 @@ export interface BookingTarget {
   path: string;
   /** Day tours ask the guest for a pickup location. */
   requiresPickup: boolean;
+  /** Pricing model, minimum group, vehicle rule and labels. See getTourPricing. */
+  pricing: ResolvedPricing;
 }
 
 /** Looks the package up on the server so the client can never set its own title or price. */
@@ -61,12 +76,13 @@ export function resolveBookingTarget(id: string): BookingTarget | null {
     originalPrice: tour.originalPrice,
     path: `/packages/${tour.id}`,
     requiresPickup: isDayTour(tour),
+    pricing: getTourPricing(tour),
   };
 }
 
 export function validateBooking(
   raw: unknown,
-  target: Pick<BookingTarget, "id" | "requiresPickup">
+  target: Pick<BookingTarget, "id" | "requiresPickup" | "pricing">
 ): ValidationResult<BookingInput, BookingField> {
   const body = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const errors: Partial<Record<BookingField, string>> = {};
@@ -86,8 +102,14 @@ export function validateBooking(
   if (!isIsoDate(travelDate)) errors.travelDate = "Please choose your preferred travel date.";
   else if (travelDate < earliestAllowedDate()) errors.travelDate = "Travel date cannot be in the past.";
 
+  const minGuests = target.pricing.minTravellers;
   if (!Number.isInteger(adults) || adults < 1 || adults > MAX_BOOKING_ADULTS) {
-    errors.adults = `Number of adults must be between 1 and ${MAX_BOOKING_ADULTS}.`;
+    errors.adults =
+      adults > MAX_BOOKING_ADULTS
+        ? `For groups of more than ${MAX_BOOKING_ADULTS} guests, please message us on WhatsApp.`
+        : `Number of guests must be a whole number between 1 and ${MAX_BOOKING_ADULTS}.`;
+  } else if (adults < minGuests) {
+    errors.adults = `This tour needs at least ${minGuests} people.`;
   }
 
   if (target.requiresPickup && pickupLocation.length < 2) {

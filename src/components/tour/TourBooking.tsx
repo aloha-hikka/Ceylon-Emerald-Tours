@@ -3,7 +3,8 @@
 import { useCallback, useState } from "react";
 import { Car, Compass, Languages, MapPin, RefreshCcw, Users, Zap, Activity } from "lucide-react";
 import BookingModal from "../BookingModal";
-import { formatUSD, isDayTour, type Tour } from "@/data/toursData";
+import { formatUSD, getTourPricing, hasDiscount, isDayTour, type Tour } from "@/data/toursData";
+import { vehicleNote } from "@/lib/pricing";
 
 const TRUST = [
   { Icon: RefreshCcw, title: "Flexible Cancellation", text: "Ask us about changing your dates." },
@@ -14,7 +15,8 @@ const TRUST = [
 export default function TourBooking({ tour }: { tour: Tour }) {
   const [open, setOpen] = useState(false);
   const close = useCallback(() => setOpen(false), []);
-  const summary = `${tour.duration}, from ${formatUSD(tour.price)} per adult`;
+  const pricing = getTourPricing(tour);
+  const summary = `${tour.duration}, ${formatUSD(tour.price)} ${pricing.unit}`;
   const info = tour.tourInfo;
 
   const infoRows = [
@@ -34,11 +36,12 @@ export default function TourBooking({ tour }: { tour: Tour }) {
             <span className="inline-block rounded-full bg-gradient-to-r from-ceylon-glow to-ceylon-gold px-3 py-1 text-xs font-bold text-ceylon-night">
               {tour.discountBadge}
             </span>
-            <p className="mt-4 text-sm text-emerald-100/80">Starting from, per adult</p>
+            <p className="mt-4 text-sm text-emerald-100/80">{pricing.caption}</p>
             <p className="mt-1 flex items-baseline gap-3">
               <span className="font-display text-5xl font-semibold text-ceylon-glow">{formatUSD(tour.price)}</span>
-              <span className="text-lg text-white/50 line-through">{formatUSD(tour.originalPrice)}</span>
+              {hasDiscount(tour) && <span className="text-lg text-white/50 line-through">{formatUSD(tour.originalPrice)}</span>}
             </p>
+            {pricing.vehicle && <p className="mt-3 text-xs leading-relaxed text-emerald-100/75">{vehicleNote(pricing.vehicle)}</p>}
           </div>
           <div className="p-6">
             <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="btn-gold w-full text-base">
@@ -81,7 +84,7 @@ export default function TourBooking({ tour }: { tour: Tour }) {
       {/* Mobile booking bar */}
       <div className="glass-dark fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-4 px-5 py-3 lg:hidden">
         <div>
-          <p className="text-xs text-white/60">From, per adult</p>
+          <p className="text-xs text-white/60">{pricing.caption}</p>
           <p className="font-display text-xl font-semibold text-ceylon-glow">{formatUSD(tour.price)}</p>
         </div>
         <button type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" className="btn-gold !py-3">
@@ -95,7 +98,8 @@ export default function TourBooking({ tour }: { tour: Tour }) {
         packageId={tour.id}
         packageTitle={tour.title}
         summary={summary}
-        pricePerAdult={tour.price}
+        price={tour.price}
+        pricing={pricing}
         requiresPickup={isDayTour(tour)}
       />
     </>

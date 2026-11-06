@@ -1,14 +1,3 @@
-// Tour content for Ceylon Emerald Tours.
-//
-// Titles, prices, overviews, highlights, itineraries, FAQs and the included / excluded lists are
-// taken from the original HTML reference files (4day, 7day, 9day, 14day, colombo, galle, ella,
-// polonnaruwa). Anything that had to be written by hand because the source was empty or wrong is
-// marked with a "SOURCE" comment next to it.
-//
-// Day tours have `itinerary: []` on purpose: their pages show the highlight grid only, and their
-// booking form asks for a pickup location instead.
-//
-// Images are expected at /public/images/tours/<id>/ (see the README in that folder).
 
 export interface TourHighlight {
   title: string;
@@ -38,13 +27,61 @@ export interface TourInfo {
   fitnessLevel: string;
 }
 
+/** How a day tour travels. Tours without a vehicleType only show under the "All" filter. */
+export type VehicleType = "tuk-tuk" | "jeep";
+
+export const VEHICLE_LABELS: Record<VehicleType, string> = { "tuk-tuk": "Tuk Tuk", jeep: "Jeep" };
+
+/**
+ * A vehicle that carries a limited number of guests. When a group is bigger than one vehicle
+ * holds, another vehicle is added automatically (see src/lib/pricing.ts). There is no upper limit.
+ */
+export interface VehicleRule {
+  /** Guests per vehicle. */
+  capacity: number;
+  singular: string;
+  plural: string;
+}
+
+/**
+ * - "per-person":  price x guests. A vehicle rule (optional) only works out how many vehicles to send.
+ * - "per-vehicle": price x vehicles. The price is for one whole vehicle, however full it is.
+ */
+export type PricingModel = "per-person" | "per-vehicle";
+
+interface TourPricingBase {
+  /** Smallest group we accept. Defaults to 1. */
+  minTravellers?: number;
+  /** Small line above the price on cards and booking boxes, e.g. "Per person, minimum 2 people". */
+  caption: string;
+  /** Short unit used in sentences, e.g. "per person" or "per jeep". */
+  unit: string;
+}
+
+/** Optional on a tour. Tours without it are priced per adult, from 1 adult up. */
+export type TourPricing =
+  | (TourPricingBase & { model: "per-person"; vehicle?: VehicleRule })
+  | (TourPricingBase & { model: "per-vehicle"; vehicle: VehicleRule });
+
+/** A TourPricing with every default filled in. Always use getTourPricing(), never read tour.pricing directly. */
+export interface ResolvedPricing {
+  model: PricingModel;
+  minTravellers: number;
+  vehicle: VehicleRule | null;
+  caption: string;
+  unit: string;
+  /** Label for the headcount field: "Adults" for classic tours, "Guests" otherwise. */
+  travellerLabel: string;
+}
+
 export interface Tour {
   id: string;
   type: "multi-day" | "day-tour";
   title: string;
   duration: string;
-  /** Per adult, USD. */
+  /** USD. Per adult unless `pricing` says otherwise (see getTourPricing). */
   price: number;
+  /** Crossed-out price. Set it equal to `price` when there is no discount: nothing is crossed out. */
   originalPrice: number;
   discountBadge: string;
   image: string;
@@ -60,6 +97,12 @@ export interface Tour {
   faqs: { question: string; answer: string }[];
   /** Search text for the embedded Google map. */
   mapQuery: string;
+  /** Day tours only. Drives the vehicle filter on the Packages page. */
+  vehicleType?: VehicleType;
+  /** Vehicle-based or minimum-group pricing. See TourPricing. */
+  pricing?: TourPricing;
+  /** Places visited. Shown as a "Places you'll visit" section on the tour page. */
+  places?: string[];
 }
 
 const cover = (slug: string) => `/images/tours/${slug}/cover.jpg`;
@@ -118,9 +161,39 @@ const FAQS: { question: string; answer: string }[] = [
   },
 ];
 
+/** Vehicles. Capacity is guests per vehicle: a bigger group gets an extra vehicle automatically. */
+const TUK_TUK: VehicleRule = { capacity: 3, singular: "tuk tuk", plural: "tuk tuks" };
+const JEEP: VehicleRule = { capacity: 7, singular: "jeep", plural: "jeeps" };
+
+/** Shared by both Bandarawela & Ella day tours (tuk tuk and jeep). Guests choose 5 per day. */
+const BANDARAWELA_ELLA_PLACES: string[] = [
+  "Little Adam's Peak",
+  "Nine Arch Bridge",
+  "Rawana Falls",
+  "Rawana Cave",
+  "Asapuwa Temple",
+  "Dowa Rock Temple",
+  "Ranpuhulan Wala",
+  "View Point Demodara",
+  "Demodara Black Bridge",
+  "Halpe Tea Factory",
+  "Demodara Railway Station (Loop)",
+];
+
+const FLEXIBLE_DURATION = "Flexible, 5 places a day";
+
+/** FAQ list for the two Bandarawela & Ella tours: two tour-specific answers, then the site-wide FAQs. */
+const bandarawelaEllaFaqs = (priceAnswer: string): { question: string; answer: string }[] => [
+  {
+    question: "How many places can we visit in a day?",
+    answer:
+      "Up to five places per day, chosen from our list of eleven. There is no strict end time, so you can take your time at each stop and tell your driver where you would like to go next.",
+  },
+  { question: "How is the price worked out?", answer: priceAnswer },
+  ...FAQS,
+];
 export const tours: Tour[] = [
-  /* ------------------------------------------------------------------ */
-  // SOURCE: 4day-tour.html
+
   {
     id: "4-day-cultural-wildlife",
     type: "multi-day",
@@ -375,8 +448,6 @@ export const tours: Tour[] = [
       {
         day: 2,
         title: "Ancient City of Anuradhapura",
-        // SOURCE GAP: this day's text was empty in the original HTML. The wording below only
-        // rephrases the Anuradhapura sentence in that file's overview. Replace with the real text.
         description: "Explore **Anuradhapura**, the sacred city and UNESCO World Heritage Site known for its timeless stupas and royal ruins.",
       },
       {
@@ -715,7 +786,7 @@ export const tours: Tour[] = [
   {
     id: "ella-one-day",
     type: "day-tour",
-    title: "Ella’s Best in One Day: Little Adam’s Peak, Nine Arch Bridge & Ravana Falls Tour",
+    title: "Ella’s Best in One Day: Little Adam’s Peak, Nine Arch Bridge",
     duration: "1 Day",
     price: 150,
     originalPrice: 160,
@@ -833,10 +904,187 @@ export const tours: Tour[] = [
     excluded: EXCLUDED,
     faqs: FAQS,
   },
+
+  /* ------------------------------------------------------------------ */
+  // NEW: Bandarawela & Ella Tuk Tuk Day Tour. $25 per person, minimum 2 people.
+  // One tuk tuk takes up to 3 guests; a bigger group gets extra tuk tuks automatically. Price stays per person.
+  {
+    id: "bandarawela-ella-tuk-tuk-day-tour",
+    type: "day-tour",
+    title: "Bandarawela & Ella Tuk Tuk Day Tour",
+    duration: FLEXIBLE_DURATION,
+    price: 25,
+    originalPrice: 25,
+    discountBadge: "New",
+    vehicleType: "tuk-tuk",
+    pricing: {
+      model: "per-person",
+      minTravellers: 2,
+      vehicle: TUK_TUK,
+      caption: "Per person, minimum 2 people",
+      unit: "per person",
+    },
+    places: BANDARAWELA_ELLA_PLACES,
+    image: "/images/Ella-tuktuk.jpg",
+    gallery: [
+    "/images/gallery/nine-arches.jpg",
+    "/images/gallery/ravana-falls.jpg",
+    "/images/ella-1.jpg",
+    "/images/ella-2.jpg",
+    "/images/gallery/hill-train.jpg"
+  ],
+    mapQuery: "Ella, Sri Lanka",
+    overview:
+      "Explore Bandarawela and Ella by tuk tuk on a flexible private day tour for $25 per person. Visit up to 5 places a day, with no strict end time.\n\nChoose five stops from our list of eleven favourites around Bandarawela, Ella and Demodara, from Little Adam's Peak and the Nine Arch Bridge to Rawana Falls, Dowa Rock Temple, Halpe Tea Factory and the Demodara Railway Station loop.\n\nA minimum of 2 people is needed. Each tuk tuk takes up to 3 guests, so for bigger groups we add tuk tuks automatically and you still pay $25 per person. We ask for your pickup location when you book.",
+    highlights: [
+      {
+        title: "Open-air tuk tuk ride",
+        description: "Travel the hill-country roads between Bandarawela and Ella in a classic Sri Lankan tuk tuk, with the views all around you.",
+        iconName: "compass",
+      },
+      {
+        title: "Pick any 5 places a day",
+        description: "Choose five stops from our list of eleven, from Little Adam's Peak to the Demodara Railway Station loop.",
+        iconName: "footprints",
+      },
+      {
+        title: "No strict end time",
+        description: "Linger at a viewpoint, wait for a train or stop for tea. The day finishes when you are ready.",
+        iconName: "sunrise",
+      },
+      {
+        title: "Groups of any size",
+        description: "Up to 3 guests per tuk tuk. Travelling with 4 or more? We add tuk tuks automatically at the same $25 per person.",
+        iconName: "sparkles",
+      },
+    ],
+    itinerary: [],
+    tourInfo: {
+      vehicle: "Tuk Tuk",
+      departure: "Your hotel or chosen pickup location",
+      bestSeason: "Dec – Mar, Jul – Sep",
+      tourType: "Private Tuk Tuk Tour",
+      groupSize: "From 2 people, up to 3 per tuk tuk",
+      language: "English",
+      fitnessLevel: "Easy to Moderate",
+    },
+    included: DAY_TOUR_INCLUDED,
+    excluded: EXCLUDED,
+    faqs: bandarawelaEllaFaqs(
+      `The price is $25 per person, with a minimum of 2 people. A tuk tuk takes up to ${TUK_TUK.capacity} guests, so 4 to 6 guests travel in 2 tuk tuks, 7 to 9 in 3, and so on. We add the tuk tuks automatically and you still pay $25 per person. We confirm the final price with you before anything is charged. Nothing is paid online.`
+    ),
+  },
+
+  /* ------------------------------------------------------------------ */
+  // NEW: Scenic Highlands Jeep Safari Tour. $70 per jeep, for a group or family.
+  // One jeep takes up to 7 guests; a bigger group gets an extra jeep automatically (and a second $70).
+  {
+    id: "scenic-highlands-jeep-safari-tour",
+    type: "day-tour",
+    title: "Scenic Highlands Jeep Safari Tour",
+    duration: FLEXIBLE_DURATION,
+    price: 70,
+    originalPrice: 70,
+    discountBadge: "New",
+    vehicleType: "jeep",
+    pricing: {
+      model: "per-vehicle",
+      vehicle: JEEP,
+      caption: "Per jeep, for 6 to 7 guests",
+      unit: "per jeep",
+    },
+    places: BANDARAWELA_ELLA_PLACES,
+    image: "/images/Ella-jeep.jpg",
+    gallery: [
+    "/images/gallery/nine-arches.jpg",
+    "/images/gallery/ravana-falls.jpg",
+    "/images/ella-1.jpg",
+    "/images/ella-2.jpg",
+    "/images/gallery/hill-train.jpg"
+  ],
+    mapQuery: "Ella, Sri Lanka",
+    overview:
+      "Private jeep tour of the highlands around Bandarawela and Ella for $70 per jeep, ideal for groups of 6 to 7. Visit up to 5 places a day, no strict end time.\n\nChoose five stops from our list of eleven favourites, from Little Adam's Peak and the Nine Arch Bridge to Rawana Falls, Dowa Rock Temple, Halpe Tea Factory and the Demodara Railway Station loop.\n\nThe whole jeep is yours. A jeep takes up to 7 guests, so for a bigger group we add another jeep automatically. We ask for your pickup location when you book.",
+    highlights: [
+      {
+        title: "Private jeep for your group",
+        description: "One jeep for a family or group of 6 to 7, so everyone travels together through the highlands.",
+        iconName: "mountain",
+      },
+      {
+        title: "$70 per jeep",
+        description: "One simple price for the whole jeep. Bigger group? We add another jeep automatically: 8 to 14 guests travel in 2 jeeps.",
+        iconName: "sparkles",
+      },
+      {
+        title: "Pick any 5 places a day",
+        description: "Choose five stops from our list of eleven, from Little Adam's Peak to the Demodara Railway Station loop.",
+        iconName: "compass",
+      },
+      {
+        title: "No strict end time",
+        description: "Take your time at each stop. The day finishes when your group is ready.",
+        iconName: "sunrise",
+      },
+    ],
+    itinerary: [],
+    tourInfo: {
+      vehicle: "Jeep",
+      departure: "Your hotel or chosen pickup location",
+      bestSeason: "Dec – Mar, Jul – Sep",
+      tourType: "Private Jeep Tour",
+      groupSize: "Up to 7 per jeep",
+      language: "English",
+      fitnessLevel: "Easy to Moderate",
+    },
+    included: DAY_TOUR_INCLUDED,
+    excluded: EXCLUDED,
+    faqs: bandarawelaEllaFaqs(
+      `The price is $70 per jeep, however many of you travel in it, and a jeep takes up to ${JEEP.capacity} guests. A group of 8 to 14 guests needs 2 jeeps ($140), 15 to 21 guests need 3 jeeps ($210), and so on. We add the jeeps automatically. We confirm the final price with you before anything is charged. Nothing is paid online.`
+    ),
+  },
 ];
 
 export const multiDayTours = tours.filter((t) => t.type === "multi-day");
 export const dayTours = tours.filter((t) => t.type === "day-tour");
+
+export const FEATURED_TOUR_IDS = [
+  "bandarawela-ella-tuk-tuk-day-tour", "scenic-highlands-jeep-safari-tour",
+  "7-day-cultural-natural-wonders", "ella-one-day", "9-day-grand-tour", "galle-one-day",
+] as const;
+
+export const featuredTours: Tour[] = FEATURED_TOUR_IDS.flatMap((id) => {
+  const tour = getTourBySlug(id);
+  return tour ? [tour] : [];
+});
+
+const DEFAULT_PRICING: ResolvedPricing = {
+  model: "per-person",
+  minTravellers: 1,
+  vehicle: null,
+  caption: "From, per adult",
+  unit: "per adult",
+  travellerLabel: "Adults",
+};
+
+/** Pricing with defaults applied. Tours that do not set `pricing` keep the classic per-adult behaviour. */
+export function getTourPricing(tour: Pick<Tour, "pricing">): ResolvedPricing {
+  const p = tour.pricing;
+  if (!p) return DEFAULT_PRICING;
+  return {
+    model: p.model,
+    minTravellers: p.minTravellers ?? 1,
+    vehicle: p.vehicle ?? null,
+    caption: p.caption,
+    unit: p.unit,
+    travellerLabel: "Guests",
+  };
+}
+
+/** True when the crossed-out price should be shown. */
+export function hasDiscount(tour: Pick<Tour, "price" | "originalPrice">): boolean {
+  return tour.originalPrice > tour.price;
+}
 
 export function getTourBySlug(slug: string): Tour | undefined {
   return tours.find((t) => t.id === slug);

@@ -38,7 +38,7 @@ export default function Hero() {
         className="absolute inset-0 -z-20"
       >
         {/* The largest image on the home page: preloaded for a fast first paint. */}
-        <SafeImage src="/images/hero.jpg" alt="" sizes="100vw" quality={70} priority fallback={HERO_FALLBACK} />
+        <SafeImage src="/images/hero.webp" alt="" sizes="100vw" quality={70} priority fallback={HERO_FALLBACK} />
       </motion.div>
       {/* Readability overlays */}
       <div

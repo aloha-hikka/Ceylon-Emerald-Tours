@@ -53,7 +53,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     caption: "Making moments with guests",
     category: "past-customer",
     src: img("customers/moments-guests"),
-    alt: "Smiling travellers walking through a tea estate with a Ceylon Emerald Tours guide",
+    alt: "Happy guests sharing a moment on a Ceylon Emerald Tours trip",
   },
   {
     id: "guests-sigiriya",
@@ -61,7 +61,7 @@ export const GALLERY_ITEMS: GalleryItem[] = [
     caption: "Group Photo with guest & Vehicle",
     category: "past-customer",
     src: img("customers/photo-guests"),
-    alt: "Happy tour guests celebrating at the top of Sigiriya Rock",
+    alt: "Group photo of happy guests with their Ceylon Emerald Tours vehicle",
   },
   {
     id: "guests-safari",
@@ -82,10 +82,10 @@ export const GALLERY_ITEMS: GalleryItem[] = [
   {
     id: "guests-beach",
     title: "At Rawana Fall",
-    caption: "The last evening of a 9-day tour",
+    caption: "Guests enjoying the falls near Ella",
     category: "past-customer",
     src: img("customers/rawana-guests"),
-    alt: "Happy guests on a south coast beach at sunset at the end of their tour",
+    alt: "Happy guests visiting Rawana Falls near Ella on a Ceylon Emerald Tours trip",
   },
 
   /* ---------------- Hill Country ---------------- */

@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
-import { ChevronDown, ChevronLeft, ChevronRight, ExternalLink, PenLine, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, PenLine, Star } from "lucide-react";
 import ReviewModal from "@/components/reviews/ReviewModal";
 import { FIVE_STAR_REVIEWS } from "@/data/reviewsData";
 import { SOCIALS } from "@/lib/constants";
-
-const INITIAL_VISIBLE = 6;
 
 function Stars({ count = 5, className = "h-5 w-5" }: { count?: number; className?: string }) {
   return (
@@ -25,12 +23,10 @@ export default function Testimonials() {
   const total = reviews.length;
 
   const [index, setIndex] = useState(0);
-  const [showAll, setShowAll] = useState(false);
   const [writing, setWriting] = useState(false);
 
   const current = reviews[index] ?? reviews[0];
   const go = (next: number) => setIndex((next + total) % total);
-  const visible = showAll ? reviews : reviews.slice(0, INITIAL_VISIBLE);
 
   return (
     <MotionConfig reducedMotion="user">

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import FeaturedTours from "@/components/FeaturedTours";
 import ServicesGrid from "@/components/ServicesGrid";
 import WhyChooseUs from "@/components/WhyChooseUs";
 import GalleryPreview from "@/components/GalleryPreview";
@@ -14,7 +15,7 @@ export const metadata: Metadata = buildMetadata({
     "Book private tours, airport transfers and custom itineraries across Sri Lanka. A local team in Bandarawela plans your hill country, cultural triangle, safari and beach days.",
   path: "/",
   ogKey: "home",
-  keywords: ["Sri Lanka tour packages", "Ella tours", "Nuwara Eliya tours", "Kandy Sigiriya tour"],
+  keywords: ["Sri Lanka tour packages", "Ella tuk tuk tour", "Ella jeep tour", "Bandarawela day tour", "Nuwara Eliya tours", "Kandy Sigiriya tour"],
 });
 
 // Static page: built once and served from the CDN.
@@ -27,6 +28,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <ServicesGrid />
+        <FeaturedTours />
         <WhyChooseUs />
         <GalleryPreview />
         <Testimonials />

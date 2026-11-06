@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Suspense } from "react";
 import { Bricolage_Grotesque, Figtree } from "next/font/google";
 import CookieConsent from "@/components/CookieConsent";
 import JsonLd from "@/components/JsonLd";
 import ScrollToTop from "@/components/ScrollToTop";
-import PageLoader from "@/components/PageLoader";
+import SplashScreen from "@/components/SplashScreen";
 import { SITE } from "@/lib/constants";
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, SITE_TAGLINE, SITE_URL, ogImageUrl } from "@/lib/seo";
 import "./globals.css";
@@ -87,14 +86,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
-        <Suspense fallback={null}>
-          <PageLoader>
-            {children}
-            <ScrollToTop />
-            <CookieConsent />
-            <JsonLd data={TRAVEL_AGENCY_SCHEMA} />
-          </PageLoader>
-        </Suspense>
+        <SplashScreen />
+        {children}
+        <ScrollToTop />
+        <CookieConsent />
+        <JsonLd data={TRAVEL_AGENCY_SCHEMA} />
       </body>
     </html>
   );

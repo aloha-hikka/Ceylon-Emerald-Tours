@@ -30,11 +30,12 @@ export default function ScrollToTop() {
 
   return (
     <button
+      type="button"
       onClick={scrollToTop}
       aria-label="Scroll to top"
-      className="fixed bottom-6 right-6 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-ceylon-glow text-ceylon-night shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white focus:outline-none"
+      className="fixed bottom-24 right-5 z-50 lg:bottom-6 lg:right-6 flex h-11 w-11 items-center justify-center rounded-full bg-ceylon-glow text-ceylon-night shadow-lg transition-all duration-300 hover:scale-110 hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
     >
-      <ArrowUp className="h-5 w-5 font-bold" />
+      <ArrowUp className="h-5 w-5" aria-hidden="true" />
     </button>
   );
 }

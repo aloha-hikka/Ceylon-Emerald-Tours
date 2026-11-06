@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Check, Clock, ExternalLink, X } from "lucide-react";
+import { ArrowLeft, Check, Clock, ExternalLink, MapPin, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import IconByName from "@/components/IconByName";
@@ -11,7 +11,7 @@ import PhotoCollage from "@/components/tour/PhotoCollage";
 import TourBooking from "@/components/tour/TourBooking";
 import TourTabs from "@/components/tour/TourTabs";
 import JsonLd from "@/components/JsonLd";
-import { getTourBySlug, getTourSummary, tours } from "@/data/toursData";
+import { getTourBySlug, getTourPricing, getTourSummary, tours } from "@/data/toursData";
 import { SITE } from "@/lib/constants";
 import { absoluteUrl, buildMetadata, ogImageUrl } from "@/lib/seo";
 
@@ -45,12 +45,15 @@ export default function TourDetailPage({ params }: Props) {
 
   // Day tours have an empty itinerary: their page shows the highlight grid only.
   const hasItinerary = tour.itinerary.length > 0;
+  const places = tour.places ?? [];
+  const pricing = getTourPricing(tour);
   const info = tour.tourInfo;
   const mapQuery = encodeURIComponent(tour.mapQuery);
 
   const tabs = [
     { id: "overview", label: "Overview" },
     { id: "highlights", label: "Highlights" },
+    ...(places.length > 0 ? [{ id: "places", label: "Places" }] : []),
     ...(hasItinerary ? [{ id: "itinerary", label: "Itinerary" }] : []),
     { id: "included", label: "Included & Excluded" },
     { id: "faqs", label: "FAQs" },
@@ -77,6 +80,18 @@ export default function TourDetailPage({ params }: Props) {
             url: absoluteUrl(`/packages/${tour.id}`),
             image: absoluteUrl(ogImageUrl(tour.id)),
             touristType: info.tourType,
+            ...(places.length > 0
+              ? {
+                  itinerary: {
+                    "@type": "ItemList",
+                    itemListElement: places.map((name, i) => ({
+                      "@type": "ListItem",
+                      position: i + 1,
+                      item: { "@type": "TouristAttraction", name },
+                    })),
+                  },
+                }
+              : {}),
             provider: { "@type": "TravelAgency", name: SITE.name, url: absoluteUrl("/") },
             offers: {
               "@type": "Offer",
@@ -84,7 +99,25 @@ export default function TourDetailPage({ params }: Props) {
               priceCurrency: "USD",
               url: absoluteUrl(`/packages/${tour.id}`),
               availability: "https://schema.org/InStock",
+              // "per person", "per jeep", ... so the price is not misread as a total
+              priceSpecification: {
+                "@type": "UnitPriceSpecification",
+                price: tour.price,
+                priceCurrency: "USD",
+                unitText: pricing.unit,
+              },
             },
+          }}
+        />
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: absoluteUrl("/") },
+              { "@type": "ListItem", position: 2, name: "Tour packages", item: absoluteUrl("/packages") },
+              { "@type": "ListItem", position: 3, name: tour.title, item: absoluteUrl(`/packages/${tour.id}`) },
+            ],
           }}
         />
         {/* Banner */}
@@ -153,6 +186,30 @@ export default function TourDetailPage({ params }: Props) {
                   ))}
                 </ul>
               </section>
+
+              {/* Places you'll visit (tours with a places list) */}
+              {places.length > 0 && (
+                <section id="places" className={sectionClass}>
+                  <h2 className={headingClass}>Places you&rsquo;ll visit</h2>
+                  <p className="mt-3 max-w-2xl text-sm text-ceylon-ink/70">
+                    Choose 5 places per day from this list. There is no strict end time.
+                  </p>
+                  <ol className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {places.map((place, i) => (
+                      <li
+                        key={place}
+                        className="flex items-center gap-3 rounded-2xl border border-ceylon-deep/10 bg-white px-4 py-3.5"
+                      >
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ceylon-deep/10 font-display text-sm font-semibold text-ceylon-deep">
+                          {i + 1}
+                        </span>
+                        <span className="flex-1 text-sm font-medium text-ceylon-ink">{place}</span>
+                        <MapPin className="h-4 w-4 shrink-0 text-ceylon-gold" aria-hidden="true" />
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              )}
 
               {/* Itinerary (multi-day tours only) */}
               {hasItinerary && (

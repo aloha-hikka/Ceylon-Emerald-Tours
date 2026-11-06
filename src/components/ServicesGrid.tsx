@@ -65,6 +65,8 @@ export default function ServicesGrid() {
                     src={bgImage}
                     alt={service.title}
                     fill
+                    sizes="(min-width: 1024px) 50vw, 100vw"
+                    quality={70}
                     className="object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   {/* Solid dark overlay covering the entire card evenly without gaps */}

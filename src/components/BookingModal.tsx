@@ -4,9 +4,10 @@ import { useEffect, useId, useRef, useState, type ChangeEvent, type FormEvent } 
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2, MessageCircle, X } from "lucide-react";
-import { MAX_BOOKING_ADULTS, calculateTotal, type BookingField } from "@/lib/booking";
+import { MAX_BOOKING_ADULTS, type BookingField } from "@/lib/booking";
+import { quotePrice, vehicleNote } from "@/lib/pricing";
 import { SITE, whatsappLink } from "@/lib/constants";
-import { formatUSD } from "@/data/toursData";
+import { formatUSD, type ResolvedPricing } from "@/data/toursData";
 import { Field, ReferenceCard, inputClass, todayLocal } from "./forms/ui";
 
 interface BookingModalProps {
@@ -14,10 +15,12 @@ interface BookingModalProps {
   onClose: () => void;
   packageId: string;
   packageTitle: string;
-  /** Short line under the title, e.g. "4 Days, from $300 per adult". */
+  /** Short line under the title, e.g. "4 Days, $300 per adult". */
   summary?: string;
-  /** Listed price per adult in USD. The total shown here is a preview; the server recalculates it. */
-  pricePerAdult: number;
+  /** Listed price in USD (per adult, per person or per vehicle, see `pricing`). The quote shown here is a preview; the server recalculates it. */
+  price: number;
+  /** From getTourPricing(tour): pricing model, minimum group, vehicle rule and labels. */
+  pricing: ResolvedPricing;
   /** Day tours ask for a pickup location. */
   requiresPickup?: boolean;
 }
@@ -42,7 +45,8 @@ export default function BookingModal({
   packageId,
   packageTitle,
   summary,
-  pricePerAdult,
+  price,
+  pricing,
   requiresPickup = false,
 }: BookingModalProps) {
   const uid = useId();
@@ -154,7 +158,15 @@ export default function BookingModal({
 
   const submitting = status === "submitting";
   const adultsCount = Number(values.adults);
-  const total = Number.isInteger(adultsCount) && adultsCount >= 1 ? calculateTotal({ price: pricePerAdult }, adultsCount) : null;
+  const guestsOk =
+    Number.isInteger(adultsCount) && adultsCount >= pricing.minTravellers && adultsCount <= MAX_BOOKING_ADULTS;
+  const quote = guestsOk ? quotePrice(price, pricing, adultsCount) : null;
+  const guestsHint = [
+    pricing.minTravellers > 1 ? `Minimum ${pricing.minTravellers} people.` : null,
+    pricing.vehicle ? vehicleNote(pricing.vehicle) : null,
+  ]
+    .filter((line): line is string => line !== null)
+    .join(" ");
 
   return createPortal(
     <AnimatePresence>
@@ -323,17 +335,18 @@ export default function BookingModal({
                       className={inputClass()}
                     />
                   </Field>
-                  <Field id={`${uid}-adults`} label="Adults" error={errors.adults}>
+                  <Field id={`${uid}-adults`} label={pricing.travellerLabel} error={errors.adults} hint={guestsHint || undefined}>
                     <input
                       id={`${uid}-adults`}
                       type="number"
                       required
-                      min={1}
+                      min={pricing.minTravellers}
                       max={MAX_BOOKING_ADULTS}
                       inputMode="numeric"
                       value={values.adults}
                       onChange={update("adults")}
                       aria-invalid={Boolean(errors.adults)}
+                      aria-describedby={guestsHint ? `${uid}-adults-hint` : undefined}
                       className={inputClass()}
                     />
                   </Field>
@@ -351,12 +364,24 @@ export default function BookingModal({
                   />
                 </Field>
 
-                {total !== null && (
-                  <div className="flex items-baseline justify-between rounded-xl bg-ceylon-mist px-4 py-3" aria-live="polite">
-                    <span className="text-sm text-slate-600">
-                      Total ({adultsCount} &times; {formatUSD(pricePerAdult)})
-                    </span>
-                    <span className="font-display text-xl font-semibold text-ceylon-deep">{formatUSD(total)}</span>
+                {quote && (
+                  <div className="rounded-xl bg-ceylon-mist px-4 py-3" aria-live="polite">
+                    <div className="flex items-baseline justify-between gap-4">
+                      <span className="text-sm text-slate-600">
+                        {pricing.model === "per-vehicle" && quote.vehicleText ? (
+                          <>Total ({quote.vehicleText} &times; {formatUSD(price)})</>
+                        ) : (
+                          <>Total ({quote.billedGuests} &times; {formatUSD(price)})</>
+                        )}
+                      </span>
+                      <span className="font-display text-xl font-semibold text-ceylon-deep">{formatUSD(quote.total)}</span>
+                    </div>
+                    {quote.vehicleText && (
+                      <p className="mt-1 text-xs text-slate-500">
+                        {pricing.model === "per-person" ? `Travelling in ${quote.vehicleText}. ` : ""}
+                        Final price confirmed by our team. Nothing is charged online.
+                      </p>
+                    )}
                   </div>
                 )}
 

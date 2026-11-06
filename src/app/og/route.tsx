@@ -36,7 +36,7 @@ function resolve(key: string): { title: string; subtitle: string } {
   const page = PAGES[key];
   if (page) return page;
   const tour = getTourBySlug(key);
-  if (tour) return { title: tour.title, subtitle: `${tour.duration} private tour with Ceylon Emerald Tours` };
+  if (tour) return { title: tour.title, subtitle: `Private tour | ${tour.duration} | Ceylon Emerald Tours` };
   return PAGES.home;
 }
 
