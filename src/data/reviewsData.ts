@@ -1,15 +1,3 @@
-// Guest reviews shown on the public site.
-//
-// HOW IT WORKS
-//   1. A visitor submits the "Write a review" form. It is emailed to the team (see /api/review)
-//      and is NOT published automatically, so nothing fake or abusive can appear on the site.
-//   2. To publish a review, paste it into REVIEWS below (the owner email includes a ready-made
-//      snippet to copy).
-//   3. The public showcase only ever shows 5-star reviews: FIVE_STAR_REVIEWS filters on rating.
-//
-// SAMPLE CONTENT: the entries below are placeholders. Replace them with real guest reviews
-// (for example from TripAdvisor) before the site goes live.
-
 export interface Review {
   id: string;
   name: string;
@@ -23,11 +11,12 @@ export interface Review {
 
 export const REVIEWS: Review[] = [
   {
-    id: "sample-1",
-    name: "Guest name",
-    country: "Country",
+    id: "cet-rv-a53v",
+    name: "Roshan D",
+    country: "India",
     rating: 5,
-    text: "Sample review. Replace this with a real guest review about the driver, the route or a moment from the trip.",
+    text: "I had a great time with Ceylond Emerald Tours\nThe company arranged a Yala safari tour on a day's notice.\nThe safari driver/guide were amazing and we had an amazing 6-hour safari where we saw a leopard and zebras.",
+    date: "2026-11-18",
   },
   {
     id: "sample-2",
