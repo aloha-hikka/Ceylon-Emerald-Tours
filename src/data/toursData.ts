@@ -911,7 +911,7 @@ export const tours: Tour[] = [
   {
     id: "bandarawela-ella-tuk-tuk-day-tour",
     type: "day-tour",
-    title: "Bandarawela & Ella Tuk Tuk Day Tour",
+    title: "Ella Tuk Tuk Day Tour",
     duration: FLEXIBLE_DURATION,
     price: 25,
     originalPrice: 25,
@@ -935,11 +935,11 @@ export const tours: Tour[] = [
   ],
     mapQuery: "Ella, Sri Lanka",
     overview:
-      "Explore Bandarawela and Ella by tuk tuk on a flexible private day tour for $25 per person. Visit up to 5 places a day, with no strict end time.\n\nChoose five stops from our list of eleven favourites around Bandarawela, Ella and Demodara, from Little Adam's Peak and the Nine Arch Bridge to Rawana Falls, Dowa Rock Temple, Halpe Tea Factory and the Demodara Railway Station loop.\n\nA minimum of 2 people is needed. Each tuk tuk takes up to 3 guests, so for bigger groups we add tuk tuks automatically and you still pay $25 per person. We ask for your pickup location when you book.",
+      "Explore Ella by tuk tuk on a flexible private day tour for $25 per person. Visit up to 5 places a day, with no strict end time.\n\nChoose five stops from our list of eleven favourites around Bandarawela, Ella and Demodara, from Little Adam's Peak and the Nine Arch Bridge to Rawana Falls, Dowa Rock Temple, Halpe Tea Factory and the Demodara Railway Station loop.\n\nA minimum of 2 people is needed. Each tuk tuk takes up to 3 guests, so for bigger groups we add tuk tuks automatically and you still pay $25 per person. We ask for your pickup location when you book.",
     highlights: [
       {
         title: "Open-air tuk tuk ride",
-        description: "Travel the hill-country roads between Bandarawela and Ella in a classic Sri Lankan tuk tuk, with the views all around you.",
+        description: "Travel the hill-country roads between Ella in a classic Sri Lankan tuk tuk, with the views all around you.",
         iconName: "compass",
       },
       {
@@ -975,9 +975,6 @@ export const tours: Tour[] = [
     ),
   },
 
-  /* ------------------------------------------------------------------ */
-  // NEW: Scenic Highlands Jeep Safari Tour. $70 per jeep, for a group or family.
-  // One jeep takes up to 7 guests; a bigger group gets an extra jeep automatically (and a second $70).
   {
     id: "scenic-highlands-jeep-safari-tour",
     type: "day-tour",
@@ -1103,10 +1100,7 @@ export function stripMarkup(text: string): string {
   return text.replace(/\*\*/g, "");
 }
 
-/**
- * A short blurb for cards and page metadata: the first overview paragraph that reads like a
- * sentence (the 4-day overview opens with a one-line subtitle, which is skipped).
- */
+
 export function getTourSummary(tour: Pick<Tour, "overview">, maxLength = 220): string {
   const paragraphs = stripMarkup(tour.overview).split(/\n{2,}/);
   const first = paragraphs.find((p) => p.length > 60) ?? paragraphs[0] ?? "";
