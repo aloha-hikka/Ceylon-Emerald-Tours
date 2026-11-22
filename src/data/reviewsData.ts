@@ -11,7 +11,7 @@ export interface Review {
 
 export const REVIEWS: Review[] = [
   {
-    id: "cet-rv-a53v",
+    id: "sample-1",
     name: "Roshan D",
     country: "India",
     rating: 5,

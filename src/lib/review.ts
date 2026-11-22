@@ -1,7 +1,5 @@
 import { multiLine, oneLine, type ValidationResult } from "@/lib/validation";
 
-// Server-side helpers for the review API. Client components only import the constants and types.
-
 export interface ReviewInput {
   name: string;
   country: string;
